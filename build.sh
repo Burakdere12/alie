@@ -1,5 +1,5 @@
 if [[ -z $CC ]]; then
-  if ! [[ -x "$(command -v clang)" ]]; then
+  if [[ -x "$(command -v clang)" ]]; then
     CC=clang
   else
     CC=gcc
