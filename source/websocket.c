@@ -1,16 +1,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <libwebsockets.h>
+#include <jansson.h>
 
 struct websocket_connection {
   lws_sorted_usec_list_t sul;
   struct lws *wsi;
 };
 
-static struct websocket_connection* wsc;
-static struct lws_context* context;
+static struct websocket_connection *wsc;
+static struct lws_context *context;
+static int last_sequence = -1, heartbeat_interval;
 
-static void prepare_websocket(lws_sorted_usec_list_t* sul) {
+static void prepare_websocket(lws_sorted_usec_list_t *sul) {
   struct websocket_connection* wsc = lws_container_of(sul, struct websocket_connection, sul);
   struct lws_client_connect_info info;
 
@@ -31,28 +33,27 @@ static void prepare_websocket(lws_sorted_usec_list_t* sul) {
   lws_client_connect_via_info(&info);
 }
 
-static int websocket_callback(struct lws* wsi, enum lws_callback_reasons reason, void* user, void *in, size_t len) {
+static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
   wsc = (struct websocket_connection*) user;
 
-  switch (reason) {
-    case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-      lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char*) in : "(null)");
-      break;
+  if (reason == LWS_CALLBACK_CLIENT_CONNECTION_ERROR) {
+    lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char*) in : "(null)");
+  } else if (reason == LWS_CALLBACK_CLIENT_RECEIVE) {
+    json_error_t error;
+    json_t *root = json_loads(in, 0, &error), *data;
 
-    case LWS_CALLBACK_CLIENT_RECEIVE:
-      lwsl_hexdump_notice(in, len);
-      break;
+    int op_code = json_number_value(json_object_get(root, "op"));
+    data = json_object_get(root, "d");
 
-    case LWS_CALLBACK_CLIENT_ESTABLISHED:
-      lwsl_user("%s: established\n", __func__);
-      break;
-
-    case LWS_CALLBACK_CLIENT_CLOSED:
-      lwsl_err("%s: closed\n", __func__);
-      break;
-
-    default:
-      break;
+    if (op_code == 10) {
+      heartbeat_interval = json_number_value(json_object_get(data, "heartbeat_interval"));
+    } else if (op_code == 0) {
+      last_sequence = json_number_value(json_object_get(root, "s"));
+    }
+  } else if (reason == LWS_CALLBACK_CLIENT_ESTABLISHED) {
+    lwsl_user("%s: established\n", __func__);
+  } else if (reason == LWS_CALLBACK_CLIENT_CLOSED) {
+    lwsl_err("%s: closed\n", __func__);
   }
 
   return lws_callback_http_dummy(wsi, reason, user, in, len);
