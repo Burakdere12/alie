@@ -11,4 +11,4 @@ LIBS="-lwebsockets -ljansson"
 INPUT=./source/alie.c
 OUTPUT=./alie
 
-$CC $CFLAGS $INPUT -o $OUTPUT
+$CC $CFLAGS $LIBS $INPUT -o $OUTPUT
