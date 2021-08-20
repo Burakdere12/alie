@@ -7,6 +7,8 @@ alie, simplified Discord bot, that's it. As fast and stable as possible.
 + [warmcat/libwebsockets](https://github.com/warmcat/libwebsockets) (libwebsockets, libwebsockets-dev)
 
 ## Building and running
++ Rename `configuration.example.c` to `configuration.c` and fill the fields.
++ Run this commands:
 ```
 sh ./build.sh
 ./alie
