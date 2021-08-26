@@ -2,8 +2,9 @@
 alie, simplified Discord bot, that's it. As fast and stable as possible.
 
 ## Requierements
-+ C compiler
-+ [akheron/jannson](https://github.com/akheron/jansson) (jannson, jannson-dev)
++ Linux-compatible OS (aka Linux distribution)
++ A C compiler
++ [akheron/jansson](https://github.com/akheron/jansson) (jansson, jansson-dev)
 + [warmcat/libwebsockets](https://github.com/warmcat/libwebsockets) (libwebsockets, libwebsockets-dev)
 
 ## Building and running
@@ -15,4 +16,4 @@ sh ./build.sh
 ```
 
 ## License
-This project is licensed under the MIT license.
+Refer to the [LICENSE](https://github.com/aliebot/alie/blob/main/LICENSE) file.
