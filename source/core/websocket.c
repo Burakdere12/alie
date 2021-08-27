@@ -4,6 +4,11 @@
 #include <libwebsockets.h>
 #include <jansson.h>
 
+// sorry for this :(
+#include "../events/READY.c"
+#include "../events/GUILD_CREATE.c"
+#include "../events/GUILD_DELETE.c"
+
 struct websocket_connection {
   lws_sorted_usec_list_t sul;
   struct lws *wsi;
@@ -15,6 +20,7 @@ static int last_sequence = -1, heartbeat_interval;
 static char *payload;
 static size_t payload_size;
 static char *token;
+static size_t waiting_guilds = 0;
 
 static void prepare_websocket(lws_sorted_usec_list_t *sul) {
   struct websocket_connection *wsc = lws_container_of(sul, struct websocket_connection, sul);
@@ -68,6 +74,17 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
     } else if (op_code == 0) {
       const char *event_name = json_string_value(json_object_get(root, "t"));
       last_sequence = json_number_value(json_object_get(root, "s"));
+
+      if (strcmp(event_name, "READY") == 0) {
+        waiting_guilds = json_object_size(json_object_get(data, "guilds"));
+        if (waiting_guilds == 0) READY(data);
+      } else if (strcmp(event_name, "GUILD_CREATE") == 0) {
+        if (waiting_guilds == 0) GUILD_CREATE(data);
+        else {
+          waiting_guilds -= 1;
+          if (waiting_guilds == 0) READY(data);
+        }
+      } else if (strcmp(event_name, "GUILD_DELETE") == 0) GUILD_DELETE(data);
     }
   } else if (reason == LWS_CALLBACK_CLIENT_WRITEABLE) {
     lws_write(wsi, (unsigned char*) payload, payload_size, LWS_WRITE_TEXT);

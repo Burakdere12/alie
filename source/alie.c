@@ -1,4 +1,4 @@
-#include "./websocket.c"
+#include "./core/websocket.c"
 #include "./configuration.c"
 
 int main() {
