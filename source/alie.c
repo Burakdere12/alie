@@ -3,6 +3,6 @@
 
 int main() {
   init_configuration();
-  connect_websocket();
+  connect_websocket(config.token);
   return 0;
 }

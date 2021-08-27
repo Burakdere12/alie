@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <libwebsockets.h>
 #include <jansson.h>
 
@@ -11,9 +12,12 @@ struct websocket_connection {
 static struct websocket_connection *wsc;
 static struct lws_context *context;
 static int last_sequence = -1, heartbeat_interval;
+static char *payload;
+static size_t payload_size;
+static char *token;
 
 static void prepare_websocket(lws_sorted_usec_list_t *sul) {
-  struct websocket_connection* wsc = lws_container_of(sul, struct websocket_connection, sul);
+  struct websocket_connection *wsc = lws_container_of(sul, struct websocket_connection, sul);
   struct lws_client_connect_info info;
 
   memset(&info, 0, sizeof(info));
@@ -47,9 +51,26 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
 
     if (op_code == 10) {
       heartbeat_interval = json_number_value(json_object_get(data, "heartbeat_interval"));
+      payload_size = sprintf(payload, "{"
+        "\"op\": 2,"
+        "\"d\": {"
+          "\"token\": \"%s\","
+          "\"intents\": 0,"
+          "\"properties\": {"
+          "\"$os\": \"linux\","
+          "\"$browser\": \"alie-bot\","
+            "\"$device\": \"alie-bot\""
+          "}"
+        "}"
+      "}", token);
+
+     lws_callback_on_writable(wsi);
     } else if (op_code == 0) {
+      const char *event_name = json_string_value(json_object_get(root, "t"));
       last_sequence = json_number_value(json_object_get(root, "s"));
     }
+  } else if (reason == LWS_CALLBACK_CLIENT_WRITEABLE) {
+    lws_write(wsi, (unsigned char*) payload, payload_size, LWS_WRITE_TEXT);
   } else if (reason == LWS_CALLBACK_CLIENT_ESTABLISHED) {
     lwsl_user("%s: established\n", __func__);
   } else if (reason == LWS_CALLBACK_CLIENT_CLOSED) {
@@ -64,7 +85,10 @@ static const struct lws_protocols protocols[] = {
   { NULL, NULL, 0, 0, 0, NULL, 0 }
 };
 
-void connect_websocket() {
+void connect_websocket(char *bot_token) {
+  token = bot_token;
+  payload = malloc(1536);
+
   struct lws_context_creation_info info;
   memset(&info, 0, sizeof info);
 
