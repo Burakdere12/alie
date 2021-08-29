@@ -9,6 +9,13 @@
 #include "../events/GUILD_CREATE.c"
 #include "../events/GUILD_DELETE.c"
 
+struct GatewaySettings {
+  char *token;
+  char *status;
+  char *presence_text;
+  short presence_type;
+};
+
 struct websocket_connection {
   lws_sorted_usec_list_t sul;
   struct lws *wsi;
@@ -16,10 +23,10 @@ struct websocket_connection {
 
 static struct websocket_connection *wsc;
 static struct lws_context *context;
+static struct GatewaySettings gateway_settings;
 static int last_sequence = -1, heartbeat_interval;
 static char *payload;
 static size_t payload_size;
-static char *token;
 static size_t waiting_guilds = 0;
 
 static void prepare_websocket(lws_sorted_usec_list_t *sul) {
@@ -57,18 +64,42 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
 
     if (op_code == 10) {
       heartbeat_interval = json_number_value(json_object_get(data, "heartbeat_interval"));
-      payload_size = sprintf(payload, "{"
-        "\"op\": 2,"
-        "\"d\": {"
-          "\"token\": \"%s\","
-          "\"intents\": 0,"
-          "\"properties\": {"
-          "\"$os\": \"linux\","
-          "\"$browser\": \"alie-bot\","
-            "\"$device\": \"alie-bot\""
+
+      if (gateway_settings.presence_text != NULL) {
+        payload_size = sprintf(payload, "{"
+          "\"op\": 2,"
+          "\"d\": {"
+            "\"token\": \"%s\","
+            "\"intents\": 0,"
+            "\"properties\": {"
+              "\"$os\": \"linux\","
+              "\"$browser\": \"alie-bot\","
+              "\"$device\": \"alie-bot\""
+            "},"
+            "\"presence\": {"
+              "\"activities\": [{"
+                "\"name\": \"%s\","
+                "\"type\": %d"
+              "}],"
+              "\"status\": \"dnd\","
+              "\"afk\": false"
+            "}"
           "}"
-        "}"
-      "}", token);
+        "}", gateway_settings.token, gateway_settings.presence_text, gateway_settings.presence_type);
+      } else {
+        payload_size = sprintf(payload, "{"
+          "\"op\": 2,"
+          "\"d\": {"
+            "\"token\": \"%s\","
+            "\"intents\": 0,"
+            "\"properties\": {"
+              "\"$os\": \"linux\","
+              "\"$browser\": \"alie-bot\","
+              "\"$device\": \"alie-bot\""
+            "}"
+          "}"
+        "}", gateway_settings.token);
+      }
 
      lws_callback_on_writable(wsi);
     } else if (op_code == 0) {
@@ -102,8 +133,8 @@ static const struct lws_protocols protocols[] = {
   { NULL, NULL, 0, 0, 0, NULL, 0 }
 };
 
-void connect_websocket(char *bot_token) {
-  token = bot_token;
+void connect_websocket(struct GatewaySettings settings) {
+  gateway_settings = settings;
   payload = malloc(1536);
 
   struct lws_context_creation_info info;
