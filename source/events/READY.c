@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <jansson.h>
 
+#include "../core/request.c"
 #include "../core/store.c"
 
 void READY() {

@@ -5,5 +5,7 @@
 
   struct Store {
     json_t *user;
+    char *token;
+    size_t guild_count;
   } store;
 #endif

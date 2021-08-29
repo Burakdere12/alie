@@ -113,12 +113,17 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
         waiting_guilds = json_object_size(json_object_get(data, "guilds"));
         if (waiting_guilds == 0) READY();
       } else if (strcmp(event_name, "GUILD_CREATE") == 0) {
+        store.guild_count += 1;
+
         if (waiting_guilds == 0) GUILD_CREATE(data);
         else {
           waiting_guilds -= 1;
           if (waiting_guilds == 0) READY();
         }
-      } else if (strcmp(event_name, "GUILD_DELETE") == 0) GUILD_DELETE(data);
+      } else if (strcmp(event_name, "GUILD_DELETE") == 0) {
+        store.guild_count -= 1;
+        GUILD_DELETE(data);
+      }
     }
   } else if (reason == LWS_CALLBACK_CLIENT_WRITEABLE) {
     lws_write(wsi, (unsigned char*) payload, payload_size, LWS_WRITE_TEXT);
@@ -138,6 +143,7 @@ static const struct lws_protocols protocols[] = {
 
 void connect_websocket(struct GatewaySettings settings) {
   gateway_settings = settings;
+  store.token = settings.token;
   payload = malloc(1536);
 
   struct lws_context_creation_info info;

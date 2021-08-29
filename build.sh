@@ -7,7 +7,7 @@ if [[ -z $CC ]]; then
 fi
 
 CFLAGS="-O2 -Wall -Wextra -I ."
-LIBS="-lwebsockets -ljansson"
+LIBS="-lwebsockets -ljansson -lcurl"
 INPUT=./source/alie.c
 OUTPUT=./alie
 
