@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <jansson.h>
 
-void READY(json_t *data) {
-  json_t *user = json_object_get(data, "user");
-  printf("%s#%s is started!\n", json_string_value(json_object_get(user, "username")), json_string_value(json_object_get(user, "discriminator")));
+#include "../core/store.c"
+
+void READY() {
+  printf("%s#%s is started!\n", json_string_value(json_object_get(store.user, "username")), json_string_value(json_object_get(store.user, "discriminator")));
 }

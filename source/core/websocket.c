@@ -4,6 +4,8 @@
 #include <libwebsockets.h>
 #include <jansson.h>
 
+#include "./store.c"
+
 // sorry for this :(
 #include "../events/READY.c"
 #include "../events/GUILD_CREATE.c"
@@ -107,13 +109,14 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
       last_sequence = json_number_value(json_object_get(root, "s"));
 
       if (strcmp(event_name, "READY") == 0) {
+        store.user = json_object_get(data, "user");
         waiting_guilds = json_object_size(json_object_get(data, "guilds"));
-        if (waiting_guilds == 0) READY(data);
+        if (waiting_guilds == 0) READY();
       } else if (strcmp(event_name, "GUILD_CREATE") == 0) {
         if (waiting_guilds == 0) GUILD_CREATE(data);
         else {
           waiting_guilds -= 1;
-          if (waiting_guilds == 0) READY(data);
+          if (waiting_guilds == 0) READY();
         }
       } else if (strcmp(event_name, "GUILD_DELETE") == 0) GUILD_DELETE(data);
     }
