@@ -7,9 +7,8 @@
 void request(char *path, char *method, char *data) {
   char url[128], authorization[256];
   sprintf(url, "https://discord.com/api/v9/%s", path);
-  sprintf(authorization, "Authorization: %s", store.token);
+  sprintf(authorization, "Authorization: Bot %s", store.token);
 
-  // TODO: implement headers, authorization isn't working
   struct curl_slist *headers = curl_slist_append(NULL, "Content-Type: application/json");
   headers = curl_slist_append(headers, authorization);
 
