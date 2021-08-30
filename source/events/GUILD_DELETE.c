@@ -1,3 +1,3 @@
 #include <jansson.h>
 
-void GUILD_DELETE(json_t *data) {};
+void GUILD_DELETE(const json_t *data) {};

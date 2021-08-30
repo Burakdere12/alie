@@ -58,11 +58,10 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
   if (reason == LWS_CALLBACK_CLIENT_CONNECTION_ERROR) {
     lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char*) in : "(null)");
   } else if (reason == LWS_CALLBACK_CLIENT_RECEIVE) {
-    json_error_t error;
-    json_t *root = json_loads(in, 0, &error), *data;
+    const json_t *root = json_loads(in, 0, NULL);
 
-    int op_code = json_number_value(json_object_get(root, "op"));
-    data = json_object_get(root, "d");
+    const int op_code = json_number_value(json_object_get(root, "op"));
+    const json_t *data = json_object_get(root, "d");
 
     if (op_code == 10) {
       heartbeat_interval = json_number_value(json_object_get(data, "heartbeat_interval"));

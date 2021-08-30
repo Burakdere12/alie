@@ -4,7 +4,7 @@
 
 #include "./store.c"
 
-void request(char *path, char *method, char *data) {
+void request(const char *path, const char *method, const char *data) {
   char url[128], authorization[256];
   sprintf(url, "https://discord.com/api/v9/%s", path);
   sprintf(authorization, "Authorization: Bot %s", store.token);
