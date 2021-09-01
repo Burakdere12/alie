@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
 #include <libwebsockets.h>
 #include <jansson.h>
 #include <unistd.h>
@@ -31,13 +33,15 @@ static struct GatewaySettings gateway_settings;
 static short last_sequence = -1;
 static unsigned short heartbeat_interval;
 static char *payload;
-static size_t payload_size;
-static size_t waiting_guilds = 0;
+static size_t payload_size, waiting_guilds = 0;
 static pthread_t heartbeat_thread;
 
 void *send_heartbeat() {
-  sleep(heartbeat_interval / 1000);
-  // TODO: send heartbeat
+  while (true) {
+    sleep(heartbeat_interval);
+    // TODO: send heartbeat
+  }
+
   return NULL;
 }
 
@@ -76,7 +80,7 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
     if (op_code == 10) {
       heartbeat_interval = json_number_value(json_object_get(data, "heartbeat_interval"));
 
-      pthread_create(&heartbeat_thread, NULL, send_heartbeat, NULL);
+      pthread_create(&heartbeat_thread, NULL, &send_heartbeat, NULL);
       pthread_detach(heartbeat_thread);
 
       if (gateway_settings.presence_text != NULL) {
