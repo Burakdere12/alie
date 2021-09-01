@@ -9,6 +9,7 @@
 #include <pthread.h>
 
 #include "./store.c"
+#include "../tools/logs.c"
 
 // sorry for this :(
 #include "../events/READY.c"
@@ -54,7 +55,7 @@ static void prepare_websocket(lws_sorted_usec_list_t *sul) {
   info.context = context;
   info.port = 443;
   info.address = "gateway.discord.gg";
-  info.path = "/?version=v9&encoding=json";
+  info.path = "/?v=9&encoding=json";
   info.host = info.address;
   info.origin = info.address;
   info.ssl_connection = LCCSCF_USE_SSL;
@@ -69,19 +70,20 @@ static void prepare_websocket(lws_sorted_usec_list_t *sul) {
 static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
   wsc = (struct websocket_connection*) user;
 
-  if (reason == LWS_CALLBACK_CLIENT_CONNECTION_ERROR) {
-    lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char*) in : "(null)");
-  } else if (reason == LWS_CALLBACK_CLIENT_RECEIVE) {
+  if (reason == LWS_CALLBACK_CLIENT_CONNECTION_ERROR) lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char*) in : "(null)");
+  else if (reason == LWS_CALLBACK_CLIENT_RECEIVE) {
     const json_t *root = json_loads(in, 0, NULL);
 
     const int op_code = json_number_value(json_object_get(root, "op"));
     const json_t *data = json_object_get(root, "d");
+    logs(DEBUG, INFO, "Received %d operation code.", op_code);
 
     if (op_code == 10) {
       heartbeat_interval = json_number_value(json_object_get(data, "heartbeat_interval"));
 
       pthread_create(&heartbeat_thread, NULL, &send_heartbeat, NULL);
       pthread_detach(heartbeat_thread);
+      logs(DEBUG, INFO, "Heartbeat sending thread is created.");
 
       if (gateway_settings.presence_text != NULL) {
         payload_size = sprintf(payload, "{"
@@ -119,10 +121,13 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
         "}", gateway_settings.token);
       }
 
+      logs(DEBUG, INFO, "Identify payload sent.");
+
      lws_callback_on_writable(wsi);
     } else if (op_code == 0) {
       const char *event_name = json_string_value(json_object_get(root, "t"));
       last_sequence = json_number_value(json_object_get(root, "s"));
+      logs(DEBUG, INFO, "%s event received.", event_name);
 
       if (strcmp(event_name, "READY") == 0) {
         store.user = json_object_get(data, "user");
@@ -141,13 +146,9 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
         GUILD_DELETE(data);
       }
     }
-  } else if (reason == LWS_CALLBACK_CLIENT_WRITEABLE) {
-    lws_write(wsi, (unsigned char*) payload, payload_size, LWS_WRITE_TEXT);
-  } else if (reason == LWS_CALLBACK_CLIENT_ESTABLISHED) {
-    lwsl_user("%s: established\n", __func__);
-  } else if (reason == LWS_CALLBACK_CLIENT_CLOSED) {
-    lwsl_err("%s: closed\n", __func__);
-  }
+  } else if (reason == LWS_CALLBACK_CLIENT_WRITEABLE) lws_write(wsi, (unsigned char*) payload, payload_size, LWS_WRITE_TEXT);
+  else if (reason == LWS_CALLBACK_CLIENT_ESTABLISHED) lwsl_user("%s: established\n", __func__);
+  else if (reason == LWS_CALLBACK_CLIENT_CLOSED) lwsl_err("%s: closed\n", __func__);
 
   return lws_callback_http_dummy(wsi, reason, user, in, len);
 }
@@ -172,6 +173,7 @@ void connect_websocket(struct GatewaySettings settings) {
   info.fd_limit_per_thread = 3;
 
   context = lws_create_context(&info);
+
   if (!context) {
     lwsl_err("LWS couldn't setup.\n");
     return;
