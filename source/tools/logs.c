@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <time.h>
 
 #include "../../configuration.c"
 
@@ -28,6 +30,31 @@
         printf("[\033[0;33mDD\033[0m] [\033[0;33mWW\033[0m]: %s\n", formatted);
       } else if (type == ERROR) {
         printf("[\033[0;33mDD\033[0m] [\033[0;31mEE\033[0m]: %s\n", formatted);
+      }
+    } else if (mode == NORMAL) {
+      FILE *file = fopen("logs", "a");
+      char ftext[256], date[128];
+
+      time_t t = time(NULL);
+      struct tm *tm = localtime(&t);
+      sprintf(date, "%d-%02d-%02d %02d:%02d:%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+      if (type == INFO) {
+        sprintf(ftext, "[%s] [++]: %s\n", date, formatted);
+        printf("[\033[0;34m++\033[0m]: %s\n", formatted);
+        fputs(ftext, file);
+        fclose(file);
+      } else if (type == WARN) {
+        sprintf(ftext, "[%s] [WW]: %s\n", date, formatted);
+        printf("[\033[0;33mWW\033[0m]: %s\n", formatted);
+        fputs(ftext, file);
+        fclose(file);
+      } else if (type == ERROR) {
+        sprintf(ftext, "[%s] [EE]: %s\n", date, formatted);
+        printf("[\033[0;31mEE\033[0m]: %s\n", formatted);
+        fputs(ftext, file);
+        fclose(file);
+        exit(EXIT_FAILURE);
       }
     }
   }
