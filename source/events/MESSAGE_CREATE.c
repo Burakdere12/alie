@@ -15,11 +15,13 @@ void MESSAGE_CREATE(const json_t *data) {
   bool has_prefix = true;
   short i = 0;
 
-  for (i = 0; i < prefix_length; i++) {
+  while (i < (short) prefix_length) {
     if (config.prefix[i] != content[i]) {
       has_prefix = false;
       break;
     }
+
+    i += 1;
   }
 
   if (has_prefix) {

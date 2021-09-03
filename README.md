@@ -9,7 +9,7 @@ alie, simplified Discord bot, that's it. As fast and stable as possible.
 
 ## Building and running
 + Rename `configuration.example.c` to `configuration.c` and fill the fields.
-+ Run this commands:
++ Execute these commands:
 ```
 sh ./build.sh
 ./alie
