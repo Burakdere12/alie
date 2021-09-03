@@ -15,6 +15,7 @@
 #include "../events/READY.c"
 #include "../events/GUILD_CREATE.c"
 #include "../events/GUILD_DELETE.c"
+#include "../events/MESSAGE_CREATE.c"
 
 struct GatewaySettings {
   char *token;
@@ -90,7 +91,7 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
           "\"op\": 2,"
           "\"d\": {"
             "\"token\": \"%s\","
-            "\"intents\": 0,"
+            "\"intents\": 32767,"
             "\"properties\": {"
               "\"$os\": \"linux\","
               "\"$browser\": \"alie-bot\","
@@ -122,8 +123,7 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
       }
 
       logs(DEBUG, INFO, "Identify payload sent.");
-
-     lws_callback_on_writable(wsi);
+      lws_callback_on_writable(wsi);
     } else if (op_code == 0) {
       const char *event_name = json_string_value(json_object_get(root, "t"));
       last_sequence = json_number_value(json_object_get(root, "s"));
@@ -144,7 +144,7 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
       } else if (strcmp(event_name, "GUILD_DELETE") == 0) {
         store.guild_count -= 1;
         GUILD_DELETE(data);
-      }
+      } else if (strcmp(event_name, "MESSAGE_CREATE") == 0) MESSAGE_CREATE(data);
     }
   } else if (reason == LWS_CALLBACK_CLIENT_WRITEABLE) lws_write(wsi, (unsigned char*) payload, payload_size, LWS_WRITE_TEXT);
   else if (reason == LWS_CALLBACK_CLIENT_ESTABLISHED) lwsl_user("%s: established\n", __func__);
@@ -154,14 +154,14 @@ static int websocket_callback(struct lws *wsi, enum lws_callback_reasons reason,
 }
 
 static const struct lws_protocols protocols[] = {
-  { "alie-bot", websocket_callback, 0, 0, 0, NULL, 0 },
+  { "alie-bot", websocket_callback, 0, 12288, 0, NULL, 0 }, // 12288 = Max content size, 1024 * 12
   { NULL, NULL, 0, 0, 0, NULL, 0 }
 };
 
 void connect_websocket(struct GatewaySettings settings) {
   gateway_settings = settings;
   store.token = settings.token;
-  payload = malloc(1536);
+  payload = malloc(1536); // 1024 * 1.5
 
   struct lws_context_creation_info info;
   memset(&info, 0, sizeof info);
