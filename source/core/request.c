@@ -1,6 +1,8 @@
+#include <stdio.h>
+#include <string.h>
+
 #include <curl/curl.h>
 #include <jansson.h>
-#include <string.h>
 
 #include "./store.c"
 
@@ -22,12 +24,13 @@
       curl_easy_setopt(curl, CURLOPT_POST, 1L);
     } else if (strcmp(method, "GET") == 0) curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
 
-    // TODO: block output the result, add CURLOPT_WRITEFUNCTION
-    // curl_easy_setopt(curl, CURLOPT_WRITEDATA, NULL);
+    FILE *nfile = fopen("/dev/null", "w");
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, nfile);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_perform(curl);
     curl_easy_cleanup(curl);
+    fclose(nfile);
     curl_slist_free_all(headers);
   }
 #endif
