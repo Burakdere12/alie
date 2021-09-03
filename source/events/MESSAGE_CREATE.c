@@ -4,6 +4,9 @@
 
 #include "../../configuration.c"
 
+// :(
+#include "../commands/about.c"
+
 void MESSAGE_CREATE(const json_t *data) {
   const char *content = json_string_value(json_object_get(data, "content"));
 
@@ -31,5 +34,9 @@ void MESSAGE_CREATE(const json_t *data) {
     }
 
     command[content_length - prefix_length] = '\0';
+
+    if (strcmp(command, "about") == 0) {
+      ABOUT(data);
+    }
   }
 }
